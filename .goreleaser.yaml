@@ -10,6 +10,8 @@ builds:
   - main: ./cmd/protoc-gen-doc
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X github.com/pseudomuto/protoc-gen-doc.VERSION={{.Version}}
     goos:
       - darwin
       - linux

@@ -1,12 +1,61 @@
 # protoc-gen-doc
 
-[![CI Status][ci-svg]][ci-url] [![codecov][codecov-svg]][codecov-url] [![GoDoc][godoc-svg]][godoc-url]
-[![Go Report Card][goreport-svg]][goreport-url]
+This is Entur's fork of [pseudomuto/protoc-gen-doc][upstream]. See [Entur fork](#entur-fork) for what it adds and how it
+is released; everything else below is upstream documentation.
 
 This is a documentation generator plugin for the Google Protocol Buffers compiler (`protoc`). The plugin can generate
 HTML, JSON, DocBook, and Markdown documentation from comments in your `.proto` files.
 
 It supports proto2 and proto3, and can handle having both in the same context (see [examples](examples/) for proof).
+
+## Entur fork
+
+This fork exists to get protovalidate (`buf.validate`) rules into generated proto documentation. It carries two changes
+on top of upstream `master`:
+
+* **[Upstream PR #536][pr-536] — buf validate support.** Adds the `extensions/buf_validate` transformer, so
+  `(buf.validate.field)` rules are rendered like `(validate.rules)` and `(validator.field)` already were. Rebased onto
+  current upstream `master`, which meant following protovalidate's `FieldConstraints` → `FieldRules` rename and using
+  the current generated module instead of the PR's 2024 pin.
+* **A fix for option extensions not rendering at all.** The protokit v0.3.0 upgrade in upstream #561 made protokit
+  report option extensions as `protoreflect.Value` results, so message-typed payloads reach transformers as a
+  `protoreflect.Message` rather than as the generated struct pointer every transformer type-asserts on. The assertion
+  fails, the transformer returns `nil`, and the option is dropped silently — on upstream `master` that means *no*
+  extension renders, `google.api.http` and `validate.rules` included. `extensions.Transform` now unwraps such payloads.
+
+### Using it
+
+The per-platform binaries are published to Entur's Artifactory (`partner-release`) as
+`no.entur.abt:protoc-gen-doc`, with the same classifier layout upstream publishes to Maven Central, so
+`protobuf-maven-plugin` can resolve it as a binary plugin:
+
+```xml
+<plugin kind="binary-maven">
+    <groupId>no.entur.abt</groupId>
+    <artifactId>protoc-gen-doc</artifactId>
+    <version>${proto-gen-doc.version}</version>
+    <options>${project.basedir}/html.gohtml,index.html</options>
+</plugin>
+```
+
+The fork's group id deliberately differs from upstream's `io.github.pseudomuto` so these builds cannot shadow the
+upstream coordinates, which `partner-release` also proxies from Maven Central.
+
+### Releasing
+
+Push a tag: `git tag v1.5.2-entur.1 && git push origin v1.5.2-entur.1`. The [release workflow](.github/workflows/release.yaml)
+tests, builds the six platform binaries with goreleaser, and publishes them via `gradle publish`, taking the Maven
+version from the tag with the leading `v` stripped. Version numbers are `<upstream base>-entur.<n>`.
+
+### Staying in sync with upstream
+
+```sh
+git remote add upstream https://github.com/pseudomuto/protoc-gen-doc.git
+git fetch upstream && git merge upstream/master
+```
+
+Both fork changes are upstreamable, so expect this to shrink. Drop `extensions/buf_validate` if PR #536 lands upstream,
+and the `concrete` helper in `extensions/extensions.go` if the protokit payload regression is fixed there.
 
 ## Installation
 
@@ -214,3 +263,5 @@ Check out the `examples` task in the [Makefile](Makefile) to see how these were 
 [ci-svg]: https://github.com/pseudomuto/protoc-gen-doc/actions/workflows/ci.yaml/badge.svg?branch=master
 [ci-url]: https://github.com/pseudomuto/protoc-gen-doc/actions/workflows/ci.yaml
 [releases]: https://github.com/pseudomuto/protoc-gen-doc/releases
+[upstream]: https://github.com/pseudomuto/protoc-gen-doc "pseudomuto/protoc-gen-doc"
+[pr-536]: https://github.com/pseudomuto/protoc-gen-doc/pull/536 "add support for buf validate"

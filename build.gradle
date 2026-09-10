@@ -1,29 +1,111 @@
+// Publishes the goreleaser-built plugin binaries to Entur's Artifactory as a Maven artifact with
+// one classifier per platform, which is the shape protobuf-maven-plugin's `binary-maven` plugin
+// resolution expects.
+//
+// Upstream publishes the same layout to Maven Central under io.github.pseudomuto; this fork uses
+// no.entur.abt so Entur-built binaries never shadow the upstream coordinates in partner-release,
+// which also proxies Maven Central.
+//
+// Usage: goreleaser build --clean (writes dist/), then gradle publish.
+
 plugins {
   id 'maven-publish'
-  id 'signing'
 }
 
-group = 'io.github.pseudomuto'
+group = 'no.entur.abt'
+
+// Map os-maven-plugin classifiers to the goreleaser target they are built from. The dist directory
+// names carry a GOAMD64/GOARM64 variant suffix (_v1, _v8.0), so the target is matched as a prefix.
+def platforms = [
+  'linux-x86_64'   : 'linux_amd64',
+  'linux-aarch_64' : 'linux_arm64',
+  'osx-x86_64'     : 'darwin_amd64',
+  'osx-aarch_64'   : 'darwin_arm64',
+  'windows-x86_64' : 'windows_amd64',
+  'windows-aarch_64': 'windows_arm64',
+]
+
+def distDir = layout.projectDirectory.dir('dist')
+def stagingDir = layout.buildDirectory.dir('dist')
+
+// Release version comes from the tag being built; anything else is a local snapshot.
+def releaseVersion = {
+  def ref = System.getenv('GITHUB_REF_NAME')
+  if (!ref) {
+    return 'local-SNAPSHOT'
+  }
+  return ref.startsWith('v') ? ref.substring(1) : ref
+}()
+
+version = releaseVersion
+
+// Collects each platform binary under a stable, classifier-derived name. Publishing straight out of
+// dist/ is not an option: every target ships a file called protoc-gen-doc(.exe), and same-named
+// artifacts collide in the publication.
+tasks.register('collectBinaries') {
+  description = 'Copies the goreleaser binaries into build/dist, one file per Maven classifier'
+
+  inputs.dir(distDir)
+  outputs.dir(stagingDir)
+
+  doLast {
+    def dist = distDir.asFile
+    if (!dist.directory) {
+      throw new GradleException("${dist} does not exist - run 'goreleaser build --clean' first")
+    }
+
+    stagingDir.get().asFile.with {
+      deleteDir()
+      mkdirs()
+    }
+
+    platforms.each { classifier, target ->
+      def candidates = dist.listFiles({ File f ->
+        f.directory && (f.name == "protoc-gen-doc_${target}" || f.name.startsWith("protoc-gen-doc_${target}_"))
+      } as FileFilter)
+
+      if (candidates == null || candidates.length != 1) {
+        throw new GradleException(
+          "expected exactly one dist directory for ${target}, found ${candidates?.collect { it.name }}")
+      }
+
+      def binary = new File(candidates[0], target.startsWith('windows') ? 'protoc-gen-doc.exe' : 'protoc-gen-doc')
+      if (!binary.file) {
+        throw new GradleException("${binary} is missing from the goreleaser output")
+      }
+
+      def staged = new File(stagingDir.get().asFile, "protoc-gen-doc-${classifier}.exe")
+      staged.bytes = binary.bytes
+      staged.setExecutable(true, false)
+    }
+  }
+}
 
 publishing {
   publications {
     maven(MavenPublication) {
-      groupId = 'io.github.pseudomuto'
+      groupId = project.group
       artifactId = rootProject.name
-      version = System.getenv("GITHUB_REF_NAME")
-      // Strip "v" from version number
-      if (version.startsWith("v")) {
-        version = version.substring(1)
+      version = project.version
+
+      platforms.each { platformClassifier, target ->
+        artifact("${stagingDir.get().asFile}/protoc-gen-doc-${platformClassifier}.exe") {
+          classifier platformClassifier
+          extension 'exe'
+          builtBy tasks.named('collectBinaries')
+        }
       }
 
       pom {
-        name = groupId + ':' + rootProject.name
-        description = 'This is a documentation generator plugin for the Google Protocol Buffers compiler (protoc). The plugin can generate HTML, JSON, DocBook, and Markdown documentation from comments in your .proto files.'
-        url = 'https://github.com/pseudomuto/protoc-gen-doc'
+        name = "${project.group}:${rootProject.name}"
+        description = 'Entur fork of protoc-gen-doc, a documentation generator plugin for the ' +
+          'Google Protocol Buffers compiler (protoc). Carries upstream PR #536 (buf validate / ' +
+          'protovalidate support) ahead of it being merged upstream.'
+        url = 'https://github.com/entur/protoc-gen-doc'
         licenses {
           license {
             name = 'MIT License'
-            url = 'https://github.com/pseudomuto/protoc-gen-doc/blob/master/LICENSE.md'
+            url = 'https://github.com/entur/protoc-gen-doc/blob/master/LICENSE.md'
           }
         }
         developers {
@@ -32,82 +114,29 @@ publishing {
             name = 'David Muto'
             email = 'david.muto@gmail.com'
           }
+          developer {
+            id = 'entur'
+            name = 'Entur'
+            email = 'support@entur.org'
+          }
         }
         scm {
-          connection = 'scm:git:git@github.com:pseudomuto/protoc-gen-doc.git'
-          developerConnection = 'scm:git:git@github.com:pseudomuto/protoc-gen-doc.git'
-          url = 'https://github.com/pseudomuto/protoc-gen-doc'
+          connection = 'scm:git:git@github.com:entur/protoc-gen-doc.git'
+          developerConnection = 'scm:git:git@github.com:entur/protoc-gen-doc.git'
+          url = 'https://github.com/entur/protoc-gen-doc'
         }
-      }
-
-      //linux 64 arm
-      artifact("$buildDir/dist/protoc-gen-doc_linux_arm64") {
-        classifier 'linux-aarch_64'
-        extension 'exe'
-      }
-      //linux 64 intel
-      artifact("$buildDir/dist/protoc-gen-doc_linux_amd64") {
-        classifier 'linux-x86_64'
-        extension 'exe'
-      }
-      //mac 64 arm
-      artifact("$buildDir/dist/protoc-gen-doc_darwin_arm64") {
-        classifier 'osx-aarch_64'
-        extension 'exe'
-      }
-      //mac 64 intel
-      artifact("$buildDir/dist/protoc-gen-doc_darwin_amd64") {
-        classifier 'osx-x86_64'
-        extension 'exe'
-      }
-      //windows 64 arm
-      artifact("$buildDir/dist/protoc-gen-doc_windows_arm64") {
-        classifier 'windows-aarch_64'
-        extension 'exe'
-      }
-      //windows 64 intel
-      artifact("$buildDir/dist/protoc-gen-doc_windows_amd64") {
-        classifier 'windows-x86_64'
-        extension 'exe'
       }
     }
   }
 
   repositories {
     maven {
-      name = "OSSRH"
-      def releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-      def snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-      url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+      name = 'entur-partner'
+      url = 'https://entur2.jfrog.io/entur2/partner-release'
       credentials {
-        username = System.getenv("MAVEN_USERNAME")
-        password = System.getenv("MAVEN_PASSWORD")
+        username = System.getenv('MAVEN_USERNAME')
+        password = System.getenv('MAVEN_PASSWORD')
       }
     }
   }
 }
-
-signing {
-  def signingKey = project.getProperty('signingKey')
-  def signingPassword = project.getProperty('signingPassword')
-  useInMemoryPgpKeys(signingKey, signingPassword)
-  sign publishing.publications.maven
-}
-
-// A strange issue with signing meant that only the first files (with the same name) got signed.
-// To workaround this, rename all executables to include architecture.
-tasks.register('flattenDistDirectory', Copy) {
-  from("$projectDir/dist") {
-    include "**/protoc-gen-doc"
-    include "**/protoc-gen-doc.exe"
-    eachFile { file ->
-      file.name = file.relativePath.parent.lastName
-      file.relativePath = new RelativePath(true, file.relativePath.segments.drop(1))
-    }
-    includeEmptyDirs = false
-  }
-  into "$buildDir/dist"
-}
-
-publish.dependsOn flattenDistDirectory
-signMavenPublication.mustRunAfter flattenDistDirectory
