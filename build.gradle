@@ -28,16 +28,15 @@ def platforms = [
 def distDir = layout.projectDirectory.dir('dist')
 def stagingDir = layout.buildDirectory.dir('dist')
 
-// Release version comes from the tag being built; anything else is a local snapshot.
-def releaseVersion = {
-  def ref = System.getenv('GITHUB_REF_NAME')
+// Release version comes from the tag being built. -PreleaseVersion=v1.5.2-entur.1 covers publishing
+// a tag by hand from a workstation; anything else is a local snapshot.
+version = {
+  def ref = System.getenv('GITHUB_REF_NAME') ?: findProperty('releaseVersion')
   if (!ref) {
     return 'local-SNAPSHOT'
   }
   return ref.startsWith('v') ? ref.substring(1) : ref
 }()
-
-version = releaseVersion
 
 // Collects each platform binary under a stable, classifier-derived name. Publishing straight out of
 // dist/ is not an option: every target ships a file called protoc-gen-doc(.exe), and same-named
