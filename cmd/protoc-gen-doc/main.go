@@ -14,10 +14,10 @@
 package main
 
 import (
-	"github.com/pseudomuto/protokit"
-
 	"log"
 	"os"
+
+	"github.com/pseudomuto/protokit"
 
 	gendoc "github.com/pseudomuto/protoc-gen-doc"
 	_ "github.com/pseudomuto/protoc-gen-doc/extensions/buf_validate"    // imported for side effects

@@ -69,15 +69,15 @@ func (f *Flags) ShowVersion() bool {
 
 // PrintHelp prints the usage string including all flags to the `io.Writer` that was supplied to the `Flags` object.
 func (f *Flags) PrintHelp() {
-	fmt.Fprintf(f.writer, "Usage of %s:\n", f.appName)
-	fmt.Fprintf(f.writer, "%s\n", helpMessage)
-	fmt.Fprintf(f.writer, "FLAGS\n")
+	_, _ = fmt.Fprintf(f.writer, "Usage of %s:\n", f.appName)
+	_, _ = fmt.Fprintf(f.writer, "%s\n", helpMessage)
+	_, _ = fmt.Fprintf(f.writer, "FLAGS\n")
 	f.flagSet.PrintDefaults()
 }
 
 // PrintVersion prints the version string to the `io.Writer` that was supplied to the `Flags` object.
 func (f *Flags) PrintVersion() {
-	fmt.Fprintf(f.writer, "%s version %s\n", f.appName, Version())
+	_, _ = fmt.Fprintf(f.writer, "%s version %s\n", f.appName, Version())
 }
 
 // ParseFlags parses the supplied options are returns a `Flags` object to the caller.

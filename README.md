@@ -1,8 +1,6 @@
 # protoc-gen-doc
 
-[![CI Status][ci-svg]][ci-url]
-[![codecov][codecov-svg]][codecov-url]
-[![GoDoc][godoc-svg]][godoc-url]
+[![CI Status][ci-svg]][ci-url] [![codecov][codecov-svg]][codecov-url] [![GoDoc][godoc-svg]][godoc-url]
 [![Go Report Card][goreport-svg]][goreport-url]
 
 This is a documentation generator plugin for the Google Protocol Buffers compiler (`protoc`). The plugin can generate
@@ -17,12 +15,12 @@ documentation from your protos.
 
 If you'd like to install this locally, you can `go get` it.
 
-`go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@latest`
+`go get --tool github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@latest`
 
 Alternatively, you can download a pre-built release for your platform from the [releases][] page.
 
-Finally, this plugin is also available on Maven Central. For details about how to use it, check out the [gradle
-example](examples/gradle).
+Finally, this plugin is also available on Maven Central. For details about how to use it, check out the
+[gradle example](examples/gradle).
 
 ## Invoking the Plugin
 
@@ -31,8 +29,8 @@ following format:
 
     --doc_opt=<FORMAT>|<TEMPLATE_FILENAME>,<OUT_FILENAME>[,default|source_relative]
 
-The format may be one of the built-in ones ( `docbook`, `html`, `markdown` or `json`)
-or the name of a file containing a custom [Go template][gotemplate].
+The format may be one of the built-in ones ( `docbook`, `html`, `markdown` or `json`) or the name of a file containing a
+custom [Go template][gotemplate].
 
 If the `source_relative` flag is specified, the output file is written in the same relative directory as the input file.
 
@@ -84,8 +82,8 @@ docker run --rm \
 _**Remember**_: Paths should be from within the container, not the host!
 
 > NOTE: Due to the way wildcard expansion works with docker you cannot use a wildcard path (e.g. `protos/*.proto`) in
-the file list. To get around this, if no files are passed, the container will generate docs for `protos/*.proto`, which
-can be changed by mounting different volumes.
+> the file list. To get around this, if no files are passed, the container will generate docs for `protos/*.proto`,
+> which can be changed by mounting different volumes.
 
 ### Simple Usage
 
@@ -93,7 +91,14 @@ For example, to generate HTML documentation for all `.proto` files in the `proto
 
     protoc --doc_out=./doc --doc_opt=html,index.html proto/*.proto
 
-The plugin executable must be in `PATH` for this to work. 
+### Excluding Files
+
+You can exclude proto files that match specific path expressions by passing a second option delimited by `:` and
+comma-separated patterns:
+
+    protoc --doc_out=./doc --doc_opt=html,index.html:google/*,third_party/* proto/*.proto
+
+The plugin executable must be in `PATH` for this to work.
 
 ### Using a precompiled binary
 
@@ -110,6 +115,16 @@ Alternatively, you can specify a pre-built/not in `PATH` binary using the `--plu
 If you'd like to use your own template, simply use the path to the template file rather than the type.
 
     protoc --doc_out=./doc --doc_opt=/path/to/template.tmpl,index.txt proto/*.proto
+
+### Additional Options
+
+You can pass a third `--doc_opt` segment after a second `:` for extra options:
+
+    protoc --doc_out=./doc --doc_opt=html,index.html::camel_case_fields=true proto/*.proto
+
+Supported options:
+
+- `camel_case_fields=true|false`: emit field names in lowerCamelCase (default `false`).
 
 For information about the available template arguments and functions, see [Custom Templates][custom]. If you just want
 to customize the look of the HTML output, put your CSS in `stylesheet.css` next to the output file and it will be picked
@@ -150,7 +165,7 @@ enum MyEnum {
 **Excluding comments**
 
 If you want to have some comment in your proto files, but don't want them to be part of the docs, you can simply prefix
-the comment with `@exclude`. 
+the comment with `@exclude`.
 
 Example: include only the comment for the `id` field
 
@@ -174,28 +189,22 @@ Check out the [example protos](examples/proto) to see all the options.
 
 With the input `.proto` files
 
-* [Booking.proto](examples/proto/Booking.proto)
-* [Customer.proto](examples/proto/Customer.proto)
-* [Vehicle.proto](examples/proto/Vehicle.proto)
+- [Booking.proto](examples/proto/Booking.proto)
+- [Customer.proto](examples/proto/Customer.proto)
+- [Vehicle.proto](examples/proto/Vehicle.proto)
 
 the plugin gives the output
 
-* [Markdown](examples/doc/example.md)
-* [HTML][html_preview]
-* [DocBook](examples/doc/example.docbook)
-* [JSON](examples/doc/example.json)
+- [Markdown](examples/doc/example.md)
+- [HTML][html_preview]
+- [DocBook](examples/doc/example.docbook)
+- [JSON](examples/doc/example.json)
 
 Check out the `examples` task in the [Makefile](Makefile) to see how these were generated.
 
-[gotemplate]:
-    https://golang.org/pkg/text/template/
-    "Template - The Go Programming Language"
-[custom]:
-    https://github.com/pseudomuto/protoc-gen-doc/wiki/Custom-Templates
-    "Custom templates instructions"
-[html_preview]:
-    https://rawgit.com/pseudomuto/protoc-gen-doc/master/examples/doc/example.html
-    "HTML Example Output"
+[gotemplate]: https://golang.org/pkg/text/template/ "Template - The Go Programming Language"
+[custom]: https://github.com/pseudomuto/protoc-gen-doc/wiki/Custom-Templates "Custom templates instructions"
+[html_preview]: https://rawgit.com/pseudomuto/protoc-gen-doc/master/examples/doc/example.html "HTML Example Output"
 [codecov-svg]: https://codecov.io/gh/pseudomuto/protoc-gen-doc/branch/master/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/pseudomuto/protoc-gen-doc
 [godoc-svg]: https://godoc.org/github.com/pseudomuto/protoc-gen-doc?status.svg

@@ -6,18 +6,19 @@ import (
 	"strings"
 
 	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+
 	"github.com/pseudomuto/protoc-gen-doc/extensions"
 )
 
-// ValidateRule represents a single validator rule from the (validate.rules) method option extension.
+// ValidateRule represents a single validator rule from the (buf.validate.field) field option extension.
 type ValidateRule struct {
-	Name  string      `json:"name"`
-	Value interface{} `json:"value"`
+	Name  string `json:"name"`
+	Value any    `json:"value"`
 }
 
-// ValidateExtension contains the rules set by the (validate.rules) method option extension.
+// ValidateExtension contains the rules set by the (buf.validate.field) field option extension.
 type ValidateExtension struct {
-	*validate.FieldConstraints
+	*validate.FieldRules
 	rules []ValidateRule // memoized so that we don't have to use reflection more than we need.
 }
 
@@ -26,11 +27,11 @@ func (v ValidateExtension) MarshalJSON() ([]byte, error) { return json.Marshal(v
 
 // Rules returns the set of rules for this extension.
 func (v ValidateExtension) Rules() []ValidateRule {
-	if v.FieldConstraints == nil {
+	if v.FieldRules == nil {
 		return nil
 	}
 	if v.rules == nil {
-		v.rules = flattenRules("", reflect.ValueOf(v.FieldConstraints))
+		v.rules = flattenRules("", reflect.ValueOf(v.FieldRules))
 	}
 	return v.rules
 }
@@ -46,23 +47,16 @@ func flattenRules(prefix string, vv reflect.Value) (rules []ValidateRule) {
 			ft := f.Type
 			fv := vv.Field(i)
 
-			var wasIndirect bool
-			for ft.Kind() == reflect.Interface || ft.Kind() == reflect.Ptr {
+			for ft.Kind() == reflect.Interface || ft.Kind() == reflect.Pointer {
 				if fv.IsNil() {
 					continue nextField
 				}
-				wasIndirect = true
 				fv = fv.Elem()
 				ft = fv.Type()
 			}
-
-			if !wasIndirect && fv.IsZero() {
-				continue nextField
-			}
-
 			name := prefix
 			if tag, ok := f.Tag.Lookup("protobuf"); ok {
-				for _, opt := range strings.Split(tag, ",") {
+				for opt := range strings.SplitSeq(tag, ",") {
 					if strings.HasPrefix(opt, "name=") {
 						if name != "" && !strings.HasSuffix(name, ".") {
 							name += "."
@@ -88,11 +82,11 @@ func flattenRules(prefix string, vv reflect.Value) (rules []ValidateRule) {
 }
 
 func init() {
-	extensions.SetTransformer("buf.validate.field", func(payload interface{}) interface{} {
-		rules, ok := payload.(*validate.FieldConstraints)
+	extensions.SetTransformer("buf.validate.field", func(payload any) any {
+		rules, ok := payload.(*validate.FieldRules)
 		if !ok {
 			return nil
 		}
-		return ValidateExtension{FieldConstraints: rules}
+		return ValidateExtension{FieldRules: rules}
 	})
 }

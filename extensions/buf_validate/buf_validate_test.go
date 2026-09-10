@@ -4,24 +4,24 @@ import (
 	"testing"
 
 	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	"github.com/golang/protobuf/proto"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/pseudomuto/protoc-gen-doc/extensions"
 	. "github.com/pseudomuto/protoc-gen-doc/extensions/buf_validate"
-	"github.com/stretchr/testify/require"
 )
 
 func TestTransform(t *testing.T) {
-	fieldRules := &validate.FieldConstraints{
-		Type: &validate.FieldConstraints_String_{
+	fieldRules := &validate.FieldRules{
+		Type: &validate.FieldRules_String_{
 			String_: &validate.StringRules{
-
 				MinLen: proto.Uint64(1),
 				NotIn:  []string{"invalid"},
 			},
 		},
 	}
 
-	transformed := extensions.Transform(map[string]interface{}{"buf.validate.field": fieldRules})
+	transformed := extensions.Transform(map[string]any{"buf.validate.field": fieldRules})
 	require.NotEmpty(t, transformed)
 
 	rules := transformed["buf.validate.field"].(ValidateExtension).Rules()
