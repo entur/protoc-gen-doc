@@ -1,15 +1,13 @@
-name: Release
+name: Release snapshot
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  release:
+  publish-snapshot:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -23,7 +21,7 @@ jobs:
           go test ./ ./cmd/... ./extensions/...
           golangci-lint run ./...
       - name: Build binaries
-        run: goreleaser build --clean
+        run: goreleaser build --snapshot --clean
       - name: Set up Java 17
         uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
         with:
@@ -32,13 +30,13 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
       - name: Determine version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
-      # Publishes no.entur.abt:protoc-gen-doc:<tag without the leading v> to partner-release, with
-      # one .exe artifact per platform classifier.
-      - name: Publish to Artifactory
+        run: echo "VERSION=0.0.0-SNAPSHOT" >> "$GITHUB_ENV"
+      # Publishes no.entur.abt:protoc-gen-doc:0.0.0-SNAPSHOT to partner-snapshot, with one .exe
+      # artifact per platform classifier.
+      - name: Publish snapshot to Artifactory
         env:
           MAVEN_USERNAME: ${{ secrets.PARTNER_WRITE_ARTIFACTORY_AUTH_USER }}
           MAVEN_PASSWORD: ${{ secrets.PARTNER_WRITE_ARTIFACTORY_AUTH_TOKEN }}
         run: gradle publish -Pversion="${VERSION}"
       - name: Summarise
-        run: echo "Published no.entur.abt:protoc-gen-doc:${VERSION} to partner-release" >> $GITHUB_STEP_SUMMARY
+        run: echo "Published no.entur.abt:protoc-gen-doc:${VERSION} to partner-snapshot" >> $GITHUB_STEP_SUMMARY
