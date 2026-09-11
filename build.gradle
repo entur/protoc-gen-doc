@@ -28,15 +28,12 @@ def platforms = [
 def distDir = layout.projectDirectory.dir('dist')
 def stagingDir = layout.buildDirectory.dir('dist')
 
-// Release version comes from the tag being built. -PreleaseVersion=v1.5.2-entur.1 covers publishing
-// a tag by hand from a workstation; anything else is a local snapshot.
-version = {
-  def ref = System.getenv('GITHUB_REF_NAME') ?: findProperty('releaseVersion')
-  if (!ref) {
-    return 'local-SNAPSHOT'
-  }
-  return ref.startsWith('v') ? ref.substring(1) : ref
-}()
+// Version is supplied by the caller via -Pversion=<x> - see the "Determine version" steps in
+// .github/workflows/release.yaml (tag without the leading 'v') and release-snapshot.yaml
+// (0.0.0-SNAPSHOT). Falls back to a local snapshot when building outside those workflows.
+if (version == 'unspecified') {
+  version = 'local-SNAPSHOT'
+}
 
 // Collects each platform binary under a stable, classifier-derived name. Publishing straight out of
 // dist/ is not an option: every target ships a file called protoc-gen-doc(.exe), and same-named
@@ -131,10 +128,12 @@ publishing {
   repositories {
     maven {
       name = 'entur-partner'
-      url = 'https://entur2.jfrog.io/entur2/partner-release'
+      // note: SNAPSHOT versions go to partner-snapshot, everything else to partner-release,
+      // mirroring the pattern used by https://github.com/entur/logging/blob/master/build.gradle
+      url = "https://entur2.jfrog.io/entur2/${version.endsWith('SNAPSHOT') ? 'partner-snapshot' : 'partner-release'}"
       credentials {
-        username = System.getenv('MAVEN_USERNAME')
-        password = System.getenv('MAVEN_PASSWORD')
+        username = "${project.properties['entur_artifactory_user'] ?: System.env.MAVEN_USERNAME}"
+        password = "${project.properties['entur_artifactory_password'] ?: System.env.MAVEN_PASSWORD}"
       }
     }
   }
