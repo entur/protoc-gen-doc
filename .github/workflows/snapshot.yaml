@@ -46,8 +46,8 @@ jobs:
       # per platform classifier.
       - name: Publish snapshot to Artifactory
         env:
-          MAVEN_USERNAME: ${{ secrets.PARTNER_READ_WRITE_ARTIFACTORY_AUTH_USER }}
+          MAVEN_USERNAME: ${{ secrets.PARTNER_WRITE_ARTIFACTORY_AUTH_USER }}
           MAVEN_PASSWORD: ${{ secrets.PARTNER_WRITE_ARTIFACTORY_AUTH_TOKEN }}
-        run: gradle publish -Pversion="${VERSION}"
+        run: ./gradlew publish -Pversion="${VERSION}"
       - name: Summarise
         run: echo "Published no.entur.abt:protoc-gen-doc:${VERSION} to partner-snapshot" >> $GITHUB_STEP_SUMMARY

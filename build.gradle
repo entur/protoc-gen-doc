@@ -129,11 +129,15 @@ publishing {
     maven {
       name = 'entur-partner'
       // note: SNAPSHOT versions go to partner-snapshot, everything else to partner-release,
-      // mirroring the pattern used by https://github.com/entur/logging/blob/master/build.gradle
       url = "https://entur2.jfrog.io/entur2/${version.endsWith('SNAPSHOT') ? 'partner-snapshot' : 'partner-release'}"
       credentials {
-        username = "${project.properties['entur_artifactory_user'] ?: System.env.MAVEN_USERNAME}"
-        password = "${project.properties['entur_artifactory_password'] ?: System.env.MAVEN_PASSWORD}"
+        def mavenUsername = System.env.MAVEN_USERNAME
+        def mavenPassword = System.env.MAVEN_PASSWORD
+        if (!mavenUsername || !mavenPassword) {
+          throw new GradleException('MAVEN_USERNAME and MAVEN_PASSWORD environment variables must both be set to publish to Artifactory')
+        }
+        username = mavenUsername
+        password = mavenPassword
       }
     }
   }
