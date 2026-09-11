@@ -20,6 +20,8 @@ jobs:
         run: |
           go test ./ ./cmd/... ./extensions/...
           golangci-lint run ./...
+      # --snapshot uses .goreleaser.yaml's snapshot.version_template ("{{ incpatch .Version }}-next"
+      # by default). goreleaser writes the resolved version to dist/metadata.json.
       - name: Build binaries
         run: goreleaser build --snapshot --clean
       - name: Set up Java 17
@@ -29,10 +31,18 @@ jobs:
           distribution: liberica
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+      # Extracts the version goreleaser computed for this snapshot build and ensures it carries a
+      # "-SNAPSHOT" suffix, since build.gradle routes to partner-snapshot vs. partner-release based
+      # on that suffix.
       - name: Determine version
-        run: echo "VERSION=0.0.0-SNAPSHOT" >> "$GITHUB_ENV"
-      # Publishes no.entur.abt:protoc-gen-doc:0.0.0-SNAPSHOT to partner-snapshot, with one .exe
-      # artifact per platform classifier.
+        run: |
+          RAW_VERSION=$(jq -r '.version' dist/metadata.json)
+          if [[ "${RAW_VERSION}" != *-SNAPSHOT ]]; then
+            RAW_VERSION="${RAW_VERSION}-SNAPSHOT"
+          fi
+          echo "VERSION=${RAW_VERSION}" >> "$GITHUB_ENV"
+      # Publishes no.entur.abt:protoc-gen-doc:<version> to partner-snapshot, with one .exe artifact
+      # per platform classifier.
       - name: Publish snapshot to Artifactory
         env:
           MAVEN_USERNAME: ${{ secrets.PARTNER_WRITE_ARTIFACTORY_AUTH_USER }}
