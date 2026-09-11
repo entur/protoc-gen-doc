@@ -31,6 +31,7 @@ jobs:
           distribution: liberica
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
       # Extracts the version goreleaser computed for this snapshot build and ensures it carries a
       # "-SNAPSHOT" suffix, since build.gradle routes to partner-snapshot vs. partner-release based
       # on that suffix.
@@ -45,7 +46,7 @@ jobs:
       # per platform classifier.
       - name: Publish snapshot to Artifactory
         env:
-          MAVEN_USERNAME: ${{ secrets.PARTNER_WRITE_ARTIFACTORY_AUTH_USER }}
+          MAVEN_USERNAME: ${{ secrets.PARTNER_READ_WRITE_ARTIFACTORY_AUTH_USER }}
           MAVEN_PASSWORD: ${{ secrets.PARTNER_WRITE_ARTIFACTORY_AUTH_TOKEN }}
         run: gradle publish -Pversion="${VERSION}"
       - name: Summarise
