@@ -29,7 +29,7 @@ def distDir = layout.projectDirectory.dir('dist')
 def stagingDir = layout.buildDirectory.dir('dist')
 
 // Version is supplied by the caller via -Pversion=<x> - see the "Determine version" steps in
-// .github/workflows/release.yaml (tag without the leading 'v') and release-snapshot.yaml
+// .github/workflows/release.yaml (tag without the leading 'v') and snapshot.yaml
 // (0.0.0-SNAPSHOT). Falls back to a local snapshot when building outside those workflows.
 if (version == 'unspecified') {
   version = 'local-SNAPSHOT'
