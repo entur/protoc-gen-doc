@@ -42,12 +42,14 @@ jobs:
             RAW_VERSION="${RAW_VERSION}-SNAPSHOT"
           fi
           echo "VERSION=${RAW_VERSION}" >> "$GITHUB_ENV"
+          echo "Version: ${RAW_VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "Version: ${RAW_VERSION}"
       # Publishes no.entur.abt:protoc-gen-doc:<version> to partner-snapshot, with one .exe artifact
       # per platform classifier.
       - name: Publish snapshot to Artifactory
         env:
           MAVEN_USERNAME: ${{ secrets.PARTNER_WRITE_ARTIFACTORY_AUTH_USER }}
           MAVEN_PASSWORD: ${{ secrets.PARTNER_WRITE_ARTIFACTORY_AUTH_TOKEN }}
-        run: ./gradlew publish -Pversion="${VERSION}"
+        run: ./gradlew publish -Pversion="${VERSION}" --info
       - name: Summarise
         run: echo "Published no.entur.abt:protoc-gen-doc:${VERSION} to partner-snapshot" >> $GITHUB_STEP_SUMMARY

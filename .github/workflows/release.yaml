@@ -32,13 +32,16 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
       - name: Determine version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+        run: |
+          echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          echo "Version: ${GITHUB_REF_NAME#v}" >> $GITHUB_STEP_SUMMARY
+          echo "Version: ${GITHUB_REF_NAME#v}"
       # Publishes no.entur.abt:protoc-gen-doc:<tag without the leading v> to partner-release, with
       # one .exe artifact per platform classifier.
       - name: Publish to Artifactory
         env:
           MAVEN_USERNAME: ${{ secrets.PARTNER_WRITE_ARTIFACTORY_AUTH_USER }}
           MAVEN_PASSWORD: ${{ secrets.PARTNER_WRITE_ARTIFACTORY_AUTH_TOKEN }}
-        run: ./gradlew publish -Pversion="${VERSION}"
+        run: ./gradlew publish -Pversion="${VERSION}" --info
       - name: Summarise
         run: echo "Published no.entur.abt:protoc-gen-doc:${VERSION} to partner-release" >> $GITHUB_STEP_SUMMARY
