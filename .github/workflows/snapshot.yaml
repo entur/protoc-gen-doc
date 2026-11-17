@@ -24,10 +24,16 @@ jobs:
       # by default). goreleaser writes the resolved version to dist/metadata.json.
       - name: Build binaries
         run: goreleaser build --snapshot --clean
-      - name: Set up Java 17
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+      - name: Resolve safe Java version
+        id: java
+        uses: entur/abt-gha-public/.github/actions/safe-java-version@v2
         with:
           java-version: '17'
+          distribution: liberica
+      - name: Set up Java 17
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          java-version: ${{ steps.java.outputs.java-version }}
           distribution: liberica
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
